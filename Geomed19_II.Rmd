@@ -1,0 +1,44 @@
+---
+title: "R and GIS, or R as GIS: handling spatial data: GIS and R: bridges or R as GIS?"
+author: "Roger Bivand"
+date: "Tuesday, 27 August 2019, 11:10-12:50; Wolfson Medical School building Gannochy room"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    toc_depth: 2
+theme: united
+bibliography: Geomed19.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Copyright
+
+All the material presented here, to the extent it is original, is available under [CC-BY-SA](https://creativecommons.org/licenses/by-sa/4.0/).
+
+### Required current contributed CRAN packages:
+
+
+
+and **spDataLarge** - `install.packages("spDataLarge", repos = "https://nowosad.github.io/drat/", type = "source")`.
+
+### Script
+
+Script at . Download to suitable location and use as basis.
+
+
+## Session II
+
+- 11:10-11:40 (20+10) Coordinate metadata (PROJ)
+
+- 11:40-12:10 (20+10) GIS bridges (description and using GRASS)
+
+- 12:10-12:50 (20+20) Using R as a GIS (topological operations)
+
+GIS and R: bridges or R as GIS? The second session will present general principles of GIS in R - R as GIS is becoming more feasible as new contributed packages appear, and/or R bridges to GIS to permit GIS operations to be done in GIS but statistical operations in R. 
