@@ -34,13 +34,102 @@ Script at . Download to suitable location and use as basis.
 
 ## Session I
 
-- 09:00-09:30 (20+10) Representation: **sf** replaces **sp**: vector
+- 09:00-09:30 (20+10) Representation: **sf** replaces **sp**, **rgeos** and **rgdal**: vector
 
-- 09:30-10:00 (20+10) Representation: **stars**/**sf** replace **sp**: raster
+- 09:30-10:00 (20+10) Representation: **stars**/**sf** replace **sp** and **rgdal**: raster
 
 - 10:00-10:40 (20+20) Visualization: **tmap**, **cartography**, **ggplot2** and **mapview**
 
+## Outline
 
 
+- Spatial and spatio-temporal data are characterised by structures that distinguish them from typical tabular data
+
+- The geometric structures also have spatial reference system information, and can adhere to standards, which may ease geometrical operations
+
+- Satellite data and numerical model output data typically have regular grid structures, but these are often domain-specific
+
+- Computationally intensive tasks include interpolation, upsampling, focal operations, change of support and handling vector data with very detailed boundaries, as well as modelling using Bayesian inference
+
+
+
+## A short history of handling spatial data in R
+
+- pre-2003: several people doing spatial statistics or map manipulation with S-Plus (1996 SpatialStats module), and later R (e.g. spatial in MASS; spatstat, maptools, geoR, splancs, gstat, ...)
+- 2003: workshop at [DSC](https://www.r-project.org/conferences/DSC-2003/), concensus that a package with base classes should be useful; this ended up being a multiplicator
+- 2003: start of [r-sig-geo](https://stat.ethz.ch/mailman/listinfo/r-sig-geo)
+- 2003: [rgdal](https://cran.r-project.org/package=rgdal) released on CRAN (with GDAL and PROJ support)
+- 2005: [sp](https://cran.r-project.org/package=sp) released on CRAN; **sp** support in **rgdal**
+- 2008: [Applied Spatial Data Analysis with R](https://www.asdar-book.org/)
+- 2011: [rgeos](https://cran.r-project.org/package=rgeos) released on CRAN (with GEOS support for **sp** class objects^)
+- 2013: second edition of [Applied Spatial Data Analysis with R](https://www.asdar-book.org/) [@asdar]
+- 2015 [JSS special issue](https://www.jstatsoft.org/index.php/jss/issue/view/v063)
+- 2016-7: **sf** [simple features for R](https://cran.r-project.org/package=sf), R consortium support (combines GDAL, GEOS and PROJ support and S3 classes)
+- 2017-9: **stars** [spatiotemporal tidy arrays for R](https://cran.r-project.org/package=stars), R consortium support (considered pretty much "finished"; uses **sf** to interface GDAL)
+- 2019 [Geocomputation with R](https://geocompr.robinlovelace.net/) [@geocompr]
+- 2020 [Spatial Data Science; uses cases in R](https://r-spatial.org/book) [@sdsr]
+
+## Spatial data
+
+Spatial data typically combine position data in 2D (or 3D), attribute data and metadata related to the position data. Much spatial data could be called map data or GIS data. We collect and handle much more position data since global navigation satellite system (GNSS) like GPS came on stream 20 years ago, earth observation satellites have been providing data for longer. 
+
+\endcol
+\begincol{0.48\textwidth}
+
+```{r, echo = TRUE, cache=TRUE}
+library(osmdata)
+library(sf)
+bbox <- opq(bbox = 'bergen norway')
+byb0 <- osmdata_sf(add_osm_feature(bbox, key = 'railway',
+  value = 'light_rail'))$osm_lines
+tram <- osmdata_sf(add_osm_feature(bbox, key = 'railway',
+  value = 'tram'))$osm_lines
+byb1 <- tram[!is.na(tram$name),]
+o <- intersect(names(byb0), names(byb1))
+byb <- rbind(byb0[,o], byb1[,o])
+```
+```{r, echo = TRUE, eval=FALSE}
+library(mapview)
+mapview(byb)
+```
+
+
+## Vector data
+
+Spatial vector data is based on points, from which other geometries are constructed. Vector data is often also termed object-based spatial data. The light rail tracks are 2D vector data. The points themselves are stored as double precision floating point numbers, typically without recorded measures of accuracy (GNSS provides a measure of accuracy). Here, lines are constructed from points.
+
+
+```{r, echo = TRUE}
+all(st_is(byb, "XY"))
+str(st_coordinates(st_geometry(byb)[[1]]))
+```
+
+
+
+### Representing spatial vector data in R (**sp**)
+
+The **sp** package was a child of its time, using S4 formal classes, and the best compromise we then had of positional representation (not arc-node, but hard to handle holes in polygons). If we coerse `byb` to the **sp** representation, we see the formal class structure. Input/output used OGR/GDAL vector drivers in the **rgdal** package, and topological operations used GEOS in the **rgeos** package.
+
+
+```{r, echo = TRUE, mysize=TRUE, size='\\tiny'}
+library(sp)
+str(slot(as(st_geometry(byb), "Spatial"), "lines")[[1]])
+```
+
+
+### Representing spatial vector data in R (**sf**)
+
+
+The recent **sf** package bundles GDAL and GEOS (**sp** just defined the classes and methods, leaving I/O and computational geometry to other packages). **sf** used `data.frame` objects with one (or more) geometry column for vector data. The representation follows ISO 19125 (*Simple Features*), and has WKT (text) and WKB (binary) representations (used by GDAL and GEOS internally). The drivers include PostGIS and other database constructions permitting selection, and WFS for server APIs (**rgdal** does too, but requires more from the user).
+
+
+```{r, echo = TRUE, mysize=TRUE, size='\\tiny'}
+strwrap(st_as_text(st_geometry(byb)[[1]]))
+```
+
+
+### Simple feature access in R: package `sf`
+
+- Simple feature access is an [ISO standard}](http://www.opengeospatial.org/standards/sfa) that is widely adopted. It is used in spatial databases, GIS, open source libraries, GeoJSON, GeoSPARQL, etc.
 
 
