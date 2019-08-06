@@ -25,9 +25,6 @@ All the material presented here, to the extent it is original, is available unde
 ### Required current contributed CRAN packages:
 
 
-
-and **spDataLarge** - `install.packages("spDataLarge", repos = "https://nowosad.github.io/drat/", type = "source")`.
-
 ### Script
 
 Script at . Download to suitable location and use as basis.
