@@ -31,9 +31,9 @@ Script at . Download to suitable location and use as basis.
 
 ## Session I
 
-- 09:00-09:30 (20+10) Representation: **sf** replaces **sp**, **rgeos** and **rgdal**: vector
+- 09:00-09:30 (20+10) Vector representation: **sf** replaces **sp**, **rgeos** and **rgdal**: vector
 
-- 09:30-10:00 (20+10) Representation: **stars**/**sf** replace **sp** and **rgdal**: raster
+- 09:30-10:00 (20+10) Raster representation: **stars**/**sf** replace **sp** and **rgdal**: **raster** remains for now
 
 - 10:00-10:40 (20+20) Visualization: **tmap**, **cartography**, **ggplot2** and **mapview**
 
@@ -172,7 +172,34 @@ class(pts)
 sf = st_sf(a = c(3,2.5,4), b = c(1,2,4), geom = pts)
 class(sf)
 sf
-plot(sf, cex = 3, pch = 16, key.pos = 1, breaks = seq(.5,4.5,1), pal = sf.colors(4))
+```
+
+### Input/output
+
+```{r, echo=TRUE}
+tf <- tempfile(fileext=".gpkg")
+st_write(byb, dsn=tf, layer="byb", driver="GPKG")
+```
+
+```{r, echo=TRUE}
+st_layers(tf)
+```
+
+
+```{r, echo=TRUE}
+byb_a <- st_read(tf, layer="byb")
+```
+
+
+
+```{r, echo=TRUE}
+summary(st_length(byb_a))
+```
+
+
+
+```{r, echo=TRUE}
+st_touches(byb_a)
 ```
 
 ## Exercise + review
@@ -270,5 +297,39 @@ moran.test(nc$LMrand, listw=lw, alternative="two.sided")
 
 We've manipulated ourselves into a situation with abundant spatial autocorrelation at the level of the counties, but only by copying out from a more aggregated level. What is going on?
 
+## Raster data 
 
+Spatial raster data is observed using rectangular (often square) cells, within which attribute data are observed. Raster data are very rarely object-based, very often they are field-based and could have been observed everywhere. We probably do not know where within the raster cell the observed value is correct; all we know is that at the chosen resolution, this is the value representing the whole cell area.
+
+
+```{r, echo = TRUE, cache=TRUE}
+library(elevatr)
+elevation <- get_elev_raster(as(byb, "Spatial"), z = 14)
+```
+
+```{r, echo = TRUE, eval=FALSE}
+mapview(elevation, col=terrain.colors)
+```
+
+
+### Representing spatial raster data in R (**sp** and **raster**)
+
+
+The **raster** package S4 representation builds on the **sp** representation, using a `GridTopology` S4 object to specify the grid, and a data frame to hold the data. **raster** defines `RasterLayer`, and combinations of layers as stacks (may be different storage classes) or bricks (same storage class - array). Adding time remains an issue; **raster** can avoid reading data into memory using **rgdal** mechanisms.
+
+
+```{r, echo = TRUE}
+elevation
+```
+
+
+```{r, echo = TRUE}
+sp::gridparameters(as(elevation, "SpatialGrid"))
+```
+
+
+```{r, echo = TRUE}
+e1 <- st_as_stars(elevation)
+e1
+```
 
