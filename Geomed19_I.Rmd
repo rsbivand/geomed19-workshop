@@ -70,26 +70,17 @@ Script at . Download to suitable location and use as basis.
 
 Spatial data typically combine position data in 2D (or 3D), attribute data and metadata related to the position data. Much spatial data could be called map data or GIS data. We collect and handle much more position data since global navigation satellite system (GNSS) like GPS came on stream 20 years ago, earth observation satellites have been providing data for longer. 
 
-\endcol
-\begincol{0.48\textwidth}
+Lapa et al. [-@LAPA2001] (Leprosy surveillance in Olinda, Brazil, using spatial analysis techniques) made available the underlying data set of Olinda census tracts (setor) in the Corrego Alegre 1970-72 / UTM zone 25S projection (EPSG:22525).
 
 ```{r, echo = TRUE}
-library(osmdata)
 library(sf)
 ```
 ```{r, echo = TRUE, cache=TRUE}
-bbox <- opq(bbox = 'bergen norway')
-byb0 <- osmdata_sf(add_osm_feature(bbox, key = 'railway',
-  value = 'light_rail'))$osm_lines
-tram <- osmdata_sf(add_osm_feature(bbox, key = 'railway',
-  value = 'tram'))$osm_lines
-byb1 <- tram[!is.na(tram$name),]
-o <- intersect(names(byb0), names(byb1))
-byb <- rbind(byb0[,o], byb1[,o])
+olinda <- st_read("data/olinda.gpkg")
 ```
 ```{r, echo = TRUE, eval=FALSE}
 library(mapview)
-mapview(byb)
+mapview(olinda)
 ```
 
 
@@ -99,8 +90,8 @@ Spatial vector data is based on points, from which other geometries are construc
 
 
 ```{r, echo = TRUE}
-all(st_is(byb, "XY"))
-str(st_coordinates(st_geometry(byb)[[1]]))
+all(st_is(olinda, "XY"))
+str(st_coordinates(st_geometry(olinda)[[1]]))
 ```
 
 
@@ -112,7 +103,7 @@ The **sp** package was a child of its time, using S4 formal classes, and the bes
 
 ```{r, echo = TRUE, mysize=TRUE, size='\\tiny'}
 library(sp)
-str(slot(as(st_geometry(byb), "Spatial"), "lines")[[1]])
+str(slot(as(st_geometry(olinda), "Spatial"), "polygons")[[1]])
 ```
 
 
@@ -123,7 +114,7 @@ The recent **sf** package bundles GDAL and GEOS (**sp** just defined the classes
 
 
 ```{r, echo = TRUE, mysize=TRUE, size='\\tiny'}
-strwrap(st_as_text(st_geometry(byb)[[1]]))
+strwrap(st_as_text(st_geometry(olinda)[[1]]))
 ```
 
 
@@ -177,8 +168,19 @@ sf
 ### Input/output
 
 ```{r, echo=TRUE}
+library(osmdata)
+```
+
+```{r, echo=TRUE, cache=TRUE}
+bbox <- opq(bbox = 'olinda brazil')
+(osm_water <- osmdata_sf(add_osm_feature(bbox, key = 'natural', value = 'water'))$osm_points)
+```
+
+We write in EPSG:31985, SIRGAS 2000 UTM zone 25S projected coordinates, rather than WGS84 geographical coordinates.
+
+```{r, echo=TRUE}
 tf <- tempfile(fileext=".gpkg")
-st_write(byb, dsn=tf, layer="byb", driver="GPKG")
+st_write(st_transform(osm_water, 31985), dsn=tf, layer="water-pts", driver="GPKG")
 ```
 
 ```{r, echo=TRUE}
@@ -187,19 +189,14 @@ st_layers(tf)
 
 
 ```{r, echo=TRUE}
-byb_a <- st_read(tf, layer="byb")
+water_pts <- st_read(tf)
 ```
 
-
-
-```{r, echo=TRUE}
-summary(st_length(byb_a))
-```
-
-
+Here we transformed to SIRGAS 2000 UTM zone 25S (EPSG:31985), to match Landsat raster dat to be used later.
 
 ```{r, echo=TRUE}
-st_touches(byb_a)
+olinda_sirgas2000 <- st_transform(olinda, 31985)
+st_crs(olinda_sirgas2000)
 ```
 
 ## Exercise + review
@@ -302,9 +299,13 @@ We've manipulated ourselves into a situation with abundant spatial autocorrelati
 Spatial raster data is observed using rectangular (often square) cells, within which attribute data are observed. Raster data are very rarely object-based, very often they are field-based and could have been observed everywhere. We probably do not know where within the raster cell the observed value is correct; all we know is that at the chosen resolution, this is the value representing the whole cell area.
 
 
-```{r, echo = TRUE, cache=TRUE}
+```{r, echo = TRUE}
 library(elevatr)
-elevation <- get_elev_raster(as(byb, "Spatial"), z = 14)
+```
+
+```{r, echo = TRUE, cache=TRUE}
+elevation <- get_elev_raster(as(olinda_sirgas2000, "Spatial"), z = 14)
+elevation[elevation$layer < 1] <- NA
 ```
 
 ```{r, echo = TRUE, eval=FALSE}
@@ -329,7 +330,125 @@ sp::gridparameters(as(elevation, "SpatialGrid"))
 
 
 ```{r, echo = TRUE}
+library(stars)
 e1 <- st_as_stars(elevation)
 e1
 ```
+
+
+### Analysing raster data
+
+Package [`raster`](https://rspatial.org/raster/index.html) has
+been around for a long time, is robust, well tested, versatile,
+and works for large rasters. We will not discuss it here.
+
+The more recent [`stars`](https://r-spatial.github.io/stars/)
+package has a different take on raster data, and will be used here.
+The following example loads 6 bands from a (section of a) Landsat
+7 image, and plots it:
+
+```{r, echo = TRUE}
+fn <- system.file("tif/L7_ETMs.tif", package = "stars")
+system.time(L7 <- read_stars(fn))
+L7
+```
+
+```{r, echo = TRUE}
+plot(L7)
+```
+
+The irregular color breaks come from the default of using "type =
+quantile" to `classInt::classIntervals()`, which causes [histogram
+stretching](https://en.wikipedia.org/wiki/Histogram_equalization);
+this is done over all 6 bands.
+
+
+
+We can compute an index like [ndvi](https://en.wikipedia.org/wiki/Normalized_difference_vegetation_index), and plot it:
+
+```{r, echo=TRUE}
+ndvi <- function(x) (x[4] - x[3])/(x[4] + x[3])
+(s2.ndvi <- st_apply(L7, c("x", "y"), ndvi))
+system.time(plot(s2.ndvi)) 
+```
+
+### stars: out-of-memory 
+
+As we can see, this object contains no data, but only a pointer to the data. Plotting takes less time, because only pixels that can be seen are read:
+
+```{r, echo = TRUE}
+system.time(L7 <- read_stars(fn, proxy=TRUE))
+L7
+```
+
+In calculating the NDVI, lazy evaluation is used: `s2.ndvi` still contains no pixels,
+but only `plot` calls for them, and instructs `st_apply` to only work on the resolution called for.
+
+```{r, echo=TRUE}
+(s2.ndvi = st_apply(L7, c("x", "y"), ndvi))
+system.time(plot(s2.ndvi)) 
+```
+
+
+
+### Exercises
+
+1. Start R, install package **stars** (if not already present), and load it
+
+```{r, echo=TRUE}
+library(stars)
+```
+
+2. load the Landsat image test set, as above
+
+```{r, echo=TRUE}
+tif <- system.file("tif/L7_ETMs.tif", package = "stars")
+x <- read_stars(tif)
+```
+```{r, echo=TRUE}
+str(x)
+```
+3. Create an RGB composite plot using argument `rgb = c(3,2,1)` for RGB, and `rgb = c(4,3,2)` for false color.
+
+```{r, echo=TRUE}
+plot(x, rgb = c(3, 2, 1))
+```
+
+```{r, echo=TRUE}
+plot(x, rgb = c(4, 3, 2))
+```
+
+4. Use `x6 <- split(x, "band")` to create a 2-dimensional raster with 6 attributes
+
+```{r, echo=TRUE}
+(x6 <- split(x, "band"))
+```
+
+5. Plot `x6`. What has changed?
+
+```{r, echo=TRUE}
+plot(x6)
+```
+```{r, echo=TRUE}
+str(x6)
+```
+
+6. Compute the mean of all six bands by adding all six attributes and dividing by 6, and assigning the resulting matrix as a new attribute in `x6`
+
+```{r, echo=TRUE}
+x6$mean <- (x6[[1]] + x6[[2]] + x6[[3]] + x6[[4]] + x6[[5]] + x6[[6]])/6
+```
+
+7. As an alternative, compute the mean of all six bands by applying function `mean` over the `x` and `y` dimensions (essentially reducing "band"), by using `st_apply`; compare the results of the two approaches
+
+
+```{r, echo=TRUE}
+xm <- st_apply(x, c("x", "y"), mean)
+all.equal(xm[[1]], x6$mean)
+```
+```{r, echo=TRUE}
+str(xm)
+```
+
+## Visualization
 
