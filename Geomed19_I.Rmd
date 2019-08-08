@@ -77,6 +77,7 @@ library(sf)
 ```
 ```{r, echo = TRUE, cache=TRUE}
 olinda <- st_read("data/olinda.gpkg")
+st_crs(olinda) <- 22525
 ```
 ```{r, echo = TRUE, eval=FALSE}
 library(mapview)
@@ -164,6 +165,8 @@ sf = st_sf(a = c(3,2.5,4), b = c(1,2,4), geom = pts)
 class(sf)
 sf
 ```
+
+**lwgeom** is useful for fixing geometry probems and other tasks.
 
 ### Input/output
 
@@ -389,9 +392,17 @@ but only `plot` calls for them, and instructs `st_apply` to only work on the res
 system.time(plot(s2.ndvi)) 
 ```
 
+### gdalcubes 
+
+Earth Observation Data Cubes from Satellite Image Collections - extension of the **stars** proxy mechansim and the **raster** out-of-memory approach: (https://github.com/appelmar/gdalcubes_R).
+
+Processing collections of Earth observation images as on-demand multispectral, multitemporal data cubes. Users define cubes by spatiotemporal extent, resolution, and spatial reference system and let 'gdalcubes' automatically apply cropping, reprojection, and resampling using the 'Geospatial Data Abstraction Library' ('GDAL'). 
+
+Implemented functions on data cubes include reduction over space and time, applying arithmetic expressions on pixel band values, moving window aggregates over time, filtering by space, time, bands, and predicates on pixel values, materializing data cubes as 'netCDF' files, and plotting. User-defined 'R' functions can be applied over chunks of data cubes. The package implements lazy evaluation and multithreading. 
 
 
-### Exercises
+
+## Exercise + review
 
 1. Start R, install package **stars** (if not already present), and load it
 
@@ -452,3 +463,29 @@ str(xm)
 
 ## Visualization
 
+### Package-specific plot and image methods
+
+### The tmap package
+
+tmap: Thematic Maps in R
+Abstract: 	Thematic maps show spatial distributions. The theme refers to the phenomena that is shown, which is often demographical, social, cultural, or economic. The best known thematic map type is the choropleth, in which regions are colored according to the distribution of a data variable. The R package tmap offers a coherent plotting system for thematic maps that is based on the layered grammar of graphics. Thematic maps are created by stacking layers, where per layer, data can be mapped to one or more aesthetics. It is also possible to generate small multiples. Thematic maps can be further embellished by configuring the map layout and by adding map attributes, such as a scale bar and a compass. Besides plotting thematic maps on the graphics device, they can also be made interactive as an HTML widget. In addition, the R package tmaptools contains several convenient functions for reading and processing spatial data. JSSv084i06
+
+### The cartography package
+
+This package helps to design cartographic representations such as proportional symbols, choropleth, typology, flows or discontinuities maps. It also offers several features that improve the graphic presentation of maps, for instance, map palettes, layout elements (scale, north arrow, title...), labels or legends.
+
+giraud+lambert16; giraud+lambert17
+
+http://riatelab.github.io/cartography/vignettes/cheatsheet/cartography_cheatsheet.pdf
+
+rosm Download and plot Open Street Map <http://www.openstreetmap.org/>, Bing Maps <http://www.bing.com/maps> and other tiled map sources. Use to create basemaps quickly and add hillshade to vector-based maps. https://cran.r-project.org/web/packages/rosm/vignettes/rosm.html
+
+### The mapview package
+
+Quickly and conveniently create interactive visualisations of spatial data with or without background maps. Attributes of displayed features are fully queryable via pop-up windows. Additional functionality includes methods to visualise true- and false-color raster images, bounding boxes, small multiples and 3D raster data cubes.
+
+
+### The ggplot2 package
+
+
+## Exercise + review
