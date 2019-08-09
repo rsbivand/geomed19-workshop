@@ -385,7 +385,7 @@ L7
 ```
 
 In calculating the NDVI, lazy evaluation is used: `s2.ndvi` still contains no pixels,
-but only `plot` calls for them, and instructs `st_apply` to only work on the resolution called for.
+but only `plot` calls for them, and instructs `st_apply` to only work on the resolution called for, and so optimizes plotting time too.
 
 ```{r, echo=TRUE}
 (s2.ndvi = st_apply(L7, c("x", "y"), ndvi))
@@ -420,6 +420,7 @@ tf <- "output/preview.tif"
 preview <- preview(eurac, task=task, format="GTiff",
   output_file=tf)
 ```
+
 ```{r, echo = TRUE}
 plot(read_stars(preview))
 ```
@@ -495,21 +496,113 @@ args(classIntervals)
 ```
 
 
+```{r, echo=TRUE}
+(cI <- classIntervals(olinda_sirgas2000$DEPRIV, n=7, style="fisher"))
+```
+
+Fortunately, the **RColorBrewer** package gives by permission access to the ColorBrewer palettes accesible from the [ColorBrewer](http://colorbrewer2.org)
+website. Note that ColorBrewer limits the number of classes tightly, only 3--9 sequential classes
+
+
+```{r, echo=TRUE}
+library(RColorBrewer)
+pal <- RColorBrewer::brewer.pal((length(cI$brks)-1), "Reds")
+plot(cI, pal)
+```
+
+
+```{r, echo=TRUE}
+plot(olinda_sirgas2000[,"DEPRIV"], breaks=cI$brks, pal=pal)
+```
+
+
+
+
+```{r, echo=TRUE}
+display.brewer.all()
+```
+
 
 ### Package-specific plot and image methods
+
+**sf** plotting methods use base graphics:
+
+```{r, echo=TRUE}
+plot(olinda_sirgas2000[,"DEPRIV"], nbreaks=7, breaks="fisher", pal=pal)
+```
+(returns current `par()` settings)
+
 
 ### The mapview package
 
 **mapview**: Quickly and conveniently create interactive visualisations of spatial data with or without background maps. Attributes of displayed features are fully queryable via pop-up windows. Additional functionality includes methods to visualise true- and false-color raster images, bounding boxes, small multiples and 3D raster data cubes.
+
+```{r, echo=TRUE}
+mapview(olinda_sirgas2000, zcol="DEPRIV", col.regions=pal, at=cI$brks)
+```
 
 
 ### The tmap package
 
 **tmap**: Thematic maps show spatial distributions. The theme refers to the phenomena that is shown, which is often demographical, social, cultural, or economic. The best known thematic map type is the choropleth, in which regions are colored according to the distribution of a data variable. The R package tmap offers a coherent plotting system for thematic maps that is based on the layered grammar of graphics. Thematic maps are created by stacking layers, where per layer, data can be mapped to one or more aesthetics. It is also possible to generate small multiples. Thematic maps can be further embellished by configuring the map layout and by adding map attributes, such as a scale bar and a compass. Besides plotting thematic maps on the graphics device, they can also be made interactive as an HTML widget. In addition, the R package **tmaptools** contains several convenient functions for reading and processing spatial data. See  [@JSSv084i06] and Chapter 8 in [@geocompr].
 
+The **tmap** package provides cartographically informed, grammar of graphics (gg) based functionality now, like **ggplot2** using **grid** graphics. John McIntosh tried with [ggplot2](http://johnmackintosh.com/2017-08-22-simply-mapping/), with quite nice results. I suggested he look at **tmap**, and things got [better](http://johnmackintosh.com/2017-09-01-easy-maps-with-tmap/), because **tmap** can switch between interactive and static viewing. **tmap** also provides direct access to **classInt** class intervals. 
+
+```{r, echo=TRUE}
+library(tmap)
+tmap_mode("plot")
+o <- tm_shape(olinda_sirgas2000) + tm_fill("DEPRIV", style="fisher", n=7, palette="Reds")
+class(o)
+```
+
+returns a `"tmap"` object, a **grid** GROB (graphics object), with print methods.
+
+```{r, echo=TRUE}
+o
+```
+
+Since the objects are GROBs, they can be updated, as in **lattice** with **latticeExtra** or **ggplot2**:
+
+```{r, echo=TRUE}
+o + tm_borders(alpha=0.5, lwd=0.5)
+```
+
+Using `tmap_mode()`, we can switch between presentation (`"plot"`) and interactive (`"view"`) plotting:
+
+```{r, echo=TRUE}
+tmap_mode("view")
+o + tm_borders(alpha=0.5, lwd=0.5)
+```
+
+
+```{r, echo=TRUE}
+tmap_mode("plot")
+```
+
+
+```{r, echo=TRUE, eval=FALSE}
+tmap_mode("plot")
+tmaptools::palette_explorer()
+```
+
 ### The cartography package
 
 **cartography** helps to design cartographic representations such as proportional symbols, choropleth, typology, flows or discontinuities maps. It also offers several features that improve the graphic presentation of maps, for instance, map palettes, layout elements (scale, north arrow, title...), labels or legends. [@giraud+lambert16; @giraud+lambert17], http://riatelab.github.io/cartography/vignettes/cheatsheet/cartography_cheatsheet.pdf. The package is associated with **rosm**: Download and plot Open Street Map <http://www.openstreetmap.org/>, Bing Maps <http://www.bing.com/maps> and other tiled map sources. Use to create basemaps quickly and add hillshade to vector-based maps. https://cran.r-project.org/web/packages/rosm/vignettes/rosm.html
+
+The package organizes extra palettes:
+
+```{r, echo=TRUE}
+library(cartography)
+display.carto.all()
+```
+
+The plotting functions (mot methods) use base graphics:
+
+```{r, echo=TRUE}
+choroLayer(olinda_sirgas2000, var="DEPRIV", method="fisher-jenks", nclass=7, col=pal, legend.values.rnd=3)
+```
+
+(returns NULL)
 
 ### The ggplot2 package
 
