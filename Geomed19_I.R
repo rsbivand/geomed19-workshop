@@ -30,10 +30,6 @@ strwrap(st_as_text(st_geometry(olinda)[[1]]))
 sf_extSoftVersion()
 
 
-## ----echo=FALSE----------------------------------------------------------
-knitr::include_graphics('sf_deps.png')
-
-
 ## ---- echo=TRUE----------------------------------------------------------
 p1 = st_point(c(3,5))
 class(p1)

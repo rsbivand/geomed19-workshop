@@ -24,6 +24,10 @@ All the material presented here, to the extent it is original, is available unde
 
 ### Required current contributed CRAN packages:
 
+```{r, echo=TRUE}
+needed <- c("sf", "mapview", "sp", "spdep", "elevatr", "raster", "stars", "classInt", 
+  "RColorBrewer", "tmap", "tmaptools", "cartography", "ggplot2", "colorspace")
+```
 
 ### Script
 
