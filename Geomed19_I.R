@@ -47,28 +47,6 @@ sf
 
 
 ## ---- echo=TRUE----------------------------------------------------------
-library(osmdata)
-
-
-## ---- echo=TRUE, cache=TRUE----------------------------------------------
-bbox <- opq(bbox = 'olinda brazil')
-(osm_water <- osmdata_sf(add_osm_feature(bbox, key = 'natural', value = 'water'))$osm_points)
-
-
-## ---- echo=TRUE----------------------------------------------------------
-tf <- tempfile(fileext=".gpkg")
-st_write(st_transform(osm_water, 31985), dsn=tf, layer="water-pts", driver="GPKG")
-
-
-## ---- echo=TRUE----------------------------------------------------------
-st_layers(tf)
-
-
-## ---- echo=TRUE----------------------------------------------------------
-water_pts <- st_read(tf)
-
-
-## ---- echo=TRUE----------------------------------------------------------
 olinda_sirgas2000 <- st_transform(olinda, 31985)
 st_crs(olinda_sirgas2000)
 
