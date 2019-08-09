@@ -486,21 +486,25 @@ str(xm)
 
 ## Visualization
 
+We have already seen some plot methods for `"sf"`, `"sfc"` and `"nb"` objects in several packages for static plots, and **mapview** for interactive visualization. Let's run through available packages, functions and methods quickly.
+
 ### Thematic mapping
 
-**classInt**: 
+**classInt** provides the key class interval determination for thematic mapping of continuous variables. The `classIntervals()` function takes a numeric vector (now also of classes POSIXt or units), a target number of intervals, and a style of class interval. Other arguments control the closure and precision of the intervals found.
 
 ```{r, echo=TRUE}
 library(classInt)
 args(classIntervals)
 ```
-
+We'll find 7 intervals using Fisher natural breaks for the deprivation variable:
 
 ```{r, echo=TRUE}
 (cI <- classIntervals(olinda_sirgas2000$DEPRIV, n=7, style="fisher"))
 ```
 
-Fortunately, the **RColorBrewer** package gives by permission access to the ColorBrewer palettes accesible from the [ColorBrewer](http://colorbrewer2.org)
+We also need to assign a palette of graphical values, most often colours, to use to fill the intervals, and can inspect the intervals and fill colours with a plot method:
+
+The **RColorBrewer** package gives by permission access to the ColorBrewer palettes accesible from the [ColorBrewer](http://colorbrewer2.org)
 website. Note that ColorBrewer limits the number of classes tightly, only 3--9 sequential classes
 
 
@@ -510,13 +514,7 @@ pal <- RColorBrewer::brewer.pal((length(cI$brks)-1), "Reds")
 plot(cI, pal)
 ```
 
-
-```{r, echo=TRUE}
-plot(olinda_sirgas2000[,"DEPRIV"], breaks=cI$brks, pal=pal)
-```
-
-
-
+We can also display all the ColorBrewer palettes:
 
 ```{r, echo=TRUE}
 display.brewer.all()
@@ -525,17 +523,24 @@ display.brewer.all()
 
 ### Package-specific plot and image methods
 
-**sf** plotting methods use base graphics:
+The **sp** package provided base graphics plot and image methods. **sf** provides plot methods using base graphics; the method for `"sf"` objects re-arranges the plot window to provide a colour key, so extra steps are needed if overplotting is needed:
+
+```{r, echo=TRUE}
+plot(olinda_sirgas2000[,"DEPRIV"], breaks=cI$brks, pal=pal)
+```
+
+(returns current `par()` settings); the method also supports direct use of **classInt**:
 
 ```{r, echo=TRUE}
 plot(olinda_sirgas2000[,"DEPRIV"], nbreaks=7, breaks="fisher", pal=pal)
 ```
-(returns current `par()` settings)
+
+Earlier we used the plot method for `"sfc"` objects which does not manipulate the graphics device, and is easier for overplotting.
 
 
 ### The mapview package
 
-**mapview**: Quickly and conveniently create interactive visualisations of spatial data with or without background maps. Attributes of displayed features are fully queryable via pop-up windows. Additional functionality includes methods to visualise true- and false-color raster images, bounding boxes, small multiples and 3D raster data cubes.
+**mapview**: Quickly and conveniently create interactive visualisations of spatial data with or without background maps. Attributes of displayed features are fully queryable via pop-up windows. Additional functionality includes methods to visualise true- and false-color raster images, bounding boxes, small multiples and 3D raster data cubes. It uses **leaflet** and other HTML packages.
 
 ```{r, echo=TRUE}
 mapview(olinda_sirgas2000, zcol="DEPRIV", col.regions=pal, at=cI$brks)
@@ -571,6 +576,9 @@ Using `tmap_mode()`, we can switch between presentation (`"plot"`) and interacti
 
 ```{r, echo=TRUE}
 tmap_mode("view")
+```
+
+```{r, echo=TRUE}
 o + tm_borders(alpha=0.5, lwd=0.5)
 ```
 
@@ -579,9 +587,9 @@ o + tm_borders(alpha=0.5, lwd=0.5)
 tmap_mode("plot")
 ```
 
+There is also a Shiny tool for exploring palettes:
 
 ```{r, echo=TRUE, eval=FALSE}
-tmap_mode("plot")
 tmaptools::palette_explorer()
 ```
 
@@ -606,5 +614,52 @@ choroLayer(olinda_sirgas2000, var="DEPRIV", method="fisher-jenks", nclass=7, col
 
 ### The ggplot2 package
 
+The **ggplot2** package provides the `geom_sf()` facility for mapping:
+
+```{r, echo=TRUE}
+library(ggplot2)
+```
+
+```{r, echo=TRUE}
+g <- ggplot(olinda_sirgas2000) + geom_sf(aes(fill=DEPRIV))
+g
+```
+
+It is possible to set a theme that drops the arguably unnecessary graticule:
+
+```{r, echo=TRUE}
+g + theme_void()
+```
+
+
+```{r, echo=TRUE}
+g + theme_void() + scale_fill_distiller(palette="Reds", direction=1)
+```
+
+but there is a lot of jumping through hoops to get a simple map. To get proper class intervals involves even more work, because **ggplot2** takes specific, not general, positions on how graphics are observed. ColorBrewer eschews continuous colour scales based on cognitive research, but ggplot2 enforces them for continuous variables (similarly for graticules, which may make sense for data plots but not for maps).
+
 
 ## Exercise + review
+
+Since the break is close, try exploring alternative class interval definitions and palettes, maybe also visiting http://hclwizard.org/ and its `hclwizard()` Shiny app, returning a palette generating function on clicking the "Return to R" button:
+
+```{r, echo=TRUE}
+library(colorspace)
+hcl_palettes("sequential (single-hue)", n = 7, plot = TRUE)
+```
+
+```{r, echo=TRUE, eval=FALSE}
+pal <- hclwizard()
+pal(6)
+```
+
+The end of rainbow discussion is informative:
+
+```{r, echo=TRUE}
+wheel <- function(col, radius = 1, ...)
+  pie(rep(1, length(col)), col = col, radius = radius, ...) 
+opar <- par(mfrow=c(1,2))
+wheel(rainbow_hcl(12))
+wheel(rainbow(12))
+par(opar)
+```
