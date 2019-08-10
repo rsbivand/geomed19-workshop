@@ -31,7 +31,7 @@ needed <- c("sf", "mapview", "sp", "spdep", "elevatr", "raster", "stars", "class
 
 ### Script
 
-Script at https://github.com/rsbivand/geomed19-workshop/raw/master/Geomed19_I.zip. Download to suitable location, unzip and use as basis.
+Script and data at https://github.com/rsbivand/geomed19-workshop/raw/master/Geomed19_I.zip. Download to suitable location, unzip and use as basis.
 
 ## Session I
 
