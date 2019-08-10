@@ -1,8 +1,8 @@
 ## GEOMED workshop, Geomed 2019, Glasgow, 27 August
 
-### Representation and visualisation of spatial and spatio-temporal data
+### Representation and visualisation of spatial data
 
-Workshop goal: to provide enough understanding of how spatial (and maybe spatio-temporal) data is (and will be) represented in R
+Workshop goal: to provide enough understanding of how spatial data is (and will be) represented in R
 
 Please download the HTML workshop document () and the script & data zipfile. The software required is stated at the head of the HTML document, in sesssion I current R packages, in session II current R packages and GRASS GIS 7.6.1 (https://grass.osgeo.org/download/software) if you wish to explore this R-GIS bridge as an example and do not have GRASS installed.
 
