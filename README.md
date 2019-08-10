@@ -1,4 +1,4 @@
-## GEOMED workshop 
+## GEOMED workshop, Geomed 2019, Glasgow, 27 August
 
 ### Representation and visualisation of spatial and spatio-temporal data
 
