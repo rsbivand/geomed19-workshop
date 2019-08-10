@@ -76,7 +76,7 @@ Script and data at https://github.com/rsbivand/geomed19-workshop/raw/master/Geom
 
 Spatial data typically combine position data in 2D (or 3D), attribute data and metadata related to the position data. Much spatial data could be called map data or GIS data. We collect and handle much more position data since global navigation satellite system (GNSS) like GPS came on stream 20 years ago, earth observation satellites have been providing data for longer. 
 
-Lapa et al. [-@LAPA2001] (Leprosy surveillance in Olinda, Brazil, using spatial analysis techniques) made available the underlying data set of Olinda census tracts (setor) in the Corrego Alegre 1970-72 / UTM zone 25S projection (EPSG:22525). Marilia Sá Carvalho and I wrote a [tutorial](https://rsbivand.github.io/geomed19-workshop/olinda.pdf) in 2003/4 based on this data set, which has more information.
+Lapa et al. [-@LAPA2001] (Leprosy surveillance in Olinda, Brazil, using spatial analysis techniques) made available the underlying data set of Olinda census tracts (setor) in the Corrego Alegre 1970-72 / UTM zone 25S projection (EPSG:22525). Marilia Sá Carvalho and I wrote a [tutorial](https://rsbivand.github.io/geomed19-workshop/olinda.pdf) in 2003/4 based on this data set; there is more information in the tutorial.
 
 ```{r, echo = TRUE}
 library(sf)
@@ -188,8 +188,9 @@ bbox <- opq(bbox = 'olinda brazil')
 We write in EPSG:31985, SIRGAS 2000 UTM zone 25S projected coordinates, rather than WGS84 geographical coordinates.
 
 ```{r, echo=TRUE}
-tf <- tempfile(fileext=".gpkg")
-st_write(st_transform(osm_water, 31985), dsn=tf, layer="water-pts", driver="GPKG")
+if (!dir.exists("output")) dir.create("output")
+tf <- "output/water-pts.gpkg"
+st_write(st_transform(osm_water, 31985), dsn=tf, layer="water-pts", driver="GPKG", layer_options="OVERWRITE=YES")
 ```
 
 ```{r, echo=TRUE}
