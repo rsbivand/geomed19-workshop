@@ -7,6 +7,6 @@ output:
 theme: united
 ---
 
-### [Session I](https://rsbivand.github.io/geomed19-workshop/Geomed19_I.html)
+### Session I (09:00-10:40) [workshop document](https://rsbivand.github.io/geomed19-workshop/Geomed19_I.html)
 
-### [Session II](https://rsbivand.github.io/geomed19-workshop/Geomed19_II.html)
+### Session II (11:10-12:50) [workshop document](https://rsbivand.github.io/geomed19-workshop/Geomed19_II.html)
