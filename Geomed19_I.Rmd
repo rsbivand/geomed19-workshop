@@ -207,6 +207,8 @@ Here we transformed to SIRGAS 2000 UTM zone 25S (EPSG:31985), to match Landsat r
 ```{r, echo=TRUE}
 olinda_sirgas2000 <- st_transform(olinda, 31985)
 st_crs(olinda_sirgas2000)
+if (!dir.exists("output")) dir.create("output")
+st_write(olinda_sirgas2000, dsn="output/olinda_sirgas2000.gpkg", driver="GPKG", layer_options="OVERWRITE=YES")
 ```
 
 ## Exercise + review
@@ -343,6 +345,8 @@ sp::gridparameters(as(elevation, "SpatialGrid"))
 library(stars)
 e1 <- st_as_stars(elevation)
 e1
+if (!dir.exists("output")) dir.create("output")
+write_stars(e1, "output/elevation.tif")
 ```
 
 
@@ -379,12 +383,14 @@ We can compute an index like [ndvi](https://en.wikipedia.org/wiki/Normalized_dif
 ```{r, echo=TRUE}
 ndvi <- function(x) (x[4] - x[3])/(x[4] + x[3])
 (s2.ndvi <- st_apply(L7, c("x", "y"), ndvi))
+if (!dir.exists("output")) dir.create("output")
+write_stars(s2.ndvi, "output/L7_ndvi.tif")
 system.time(plot(s2.ndvi)) 
 ```
 
 ### stars: out-of-memory 
 
-As we can see, this object contains no data, but only a pointer to the data. Plotting takes less time, because only pixels that can be seen are read:
+As we can see, the proxy object contains no data, but only a pointer to the data. Plotting takes less time, because only pixels that can be seen are read:
 
 ```{r, echo = TRUE}
 system.time(L7 <- read_stars(fn, proxy=TRUE))
@@ -410,6 +416,10 @@ Implemented functions on data cubes include reduction over space and time, apply
 ### openeo
 
 [OpenEO](http://openeo.org/about/) proposes proof-of-concept client-server API approaches. The sample data sets are from the southern Alps, and the project is under development.
+
+```{r, echo=TRUE}
+if (!dir.exists("output")) dir.create("output")
+```
 
 ```{r, echo = TRUE, message=FALSE, warning=FALSE, cache=TRUE}
 library(openeo) # v 0.3.1

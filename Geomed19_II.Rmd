@@ -24,6 +24,12 @@ All the material presented here, to the extent it is original, is available unde
 
 ### Required current contributed CRAN packages:
 
+I am running R 3.6.1, with recent `update.packages()`.
+
+```{r, echo=TRUE}
+#needed <- c("sf", "mapview", "sp", "spdep", "elevatr", "raster", "stars", "classInt", 
+#  "RColorBrewer", "tmap", "tmaptools", "cartography", "ggplot2", "colorspace")
+```
 
 ### Script
 
@@ -32,10 +38,14 @@ Script at . Download to suitable location and use as basis.
 
 ## Session II
 
-- 11:10-11:40 (20+10) Coordinate metadata (PROJ)
+- 11:10-11:40 (20+10) Ongoing changes in external sofware (GEOS, GDAL), including software and standards used for representing spatial reference systems (PROJ)
 
-- 11:40-12:10 (20+10) GIS bridges (description and using GRASS)
+- 11:40-12:10 (20+10) GIS bridges (description and using GRASS and **rgrass7**)
 
 - 12:10-12:50 (20+20) Using R as a GIS (topological operations)
 
-GIS and R: bridges or R as GIS? The second session will present general principles of GIS in R - R as GIS is becoming more feasible as new contributed packages appear, and/or R bridges to GIS to permit GIS operations to be done in GIS but statistical operations in R. 
+
+Internal (R) and system dependencies look like this:
+```{r echo=FALSE}
+knitr::include_graphics('sf_deps.png')
+```
