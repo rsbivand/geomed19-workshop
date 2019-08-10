@@ -441,7 +441,7 @@ Earth Observation Data Cubes from Satellite Image Collections - extension of the
 
 Processing collections of Earth observation images as on-demand multispectral, multitemporal data cubes. Users define cubes by spatiotemporal extent, resolution, and spatial reference system and let 'gdalcubes' automatically apply cropping, reprojection, and resampling using the 'Geospatial Data Abstraction Library' ('GDAL'). 
 
-Implemented functions on data cubes include reduction over space and time, applying arithmetic expressions on pixel band values, moving window aggregates over time, filtering by space, time, bands, and predicates on pixel values, materializing data cubes as 'netCDF' files, and plotting. User-defined 'R' functions can be applied over chunks of data cubes. The package implements lazy evaluation and multithreading. See also [a one month old blog post][https://www.r-spatial.org//r/2019/07/18/gdalcubes1.html).
+Implemented functions on data cubes include reduction over space and time, applying arithmetic expressions on pixel band values, moving window aggregates over time, filtering by space, time, bands, and predicates on pixel values, materializing data cubes as 'netCDF' files, and plotting. User-defined 'R' functions can be applied over chunks of data cubes. The package implements lazy evaluation and multithreading. See also [a one month old blog post](https://www.r-spatial.org//r/2019/07/18/gdalcubes1.html).
 
 
 ## Exercise + review
