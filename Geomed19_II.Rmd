@@ -44,8 +44,153 @@ Script at . Download to suitable location and use as basis.
 
 - 12:10-12:50 (20+20) Using R as a GIS (topological operations)
 
+## Ongoing changes in external sofware (GEOS, GDAL, PROJ)
 
-Internal (R) and system dependencies look like this:
+
 ```{r echo=FALSE}
 knitr::include_graphics('sf_deps.png')
 ```
+
+
+### PROJ
+
+Because so much open source (and other) software uses the PROJ library and framework, many are affected when PROJ upgrades. Until very recently, PROJ has been seen as very reliable, and the changes taking place now are intended to confirm and reinforce this reliability. Before PROJ 5 (PROJ 6 is out now, PROJ 7 is coming early in 2020), the `+datum=` tag was used, perhaps with `+towgs84=` with three or seven coefficients, and possibly `+nadgrids=` where datum transformation grids were available. However, transformations from one projection to another first inversed to longitude-latitude in WGS84, then projected on to the target projection.
+
+
+In QGIS built on current PROJ 6 with the `proj.h` API (and GDAL built on current PROJ 6 with the `proj.h` API), we see the following sequence of GUI windows when trying to open the olinda.gpkg file.
+
+
+```{r echo=FALSE}
+knitr::include_graphics('images/A_Screenshot.png')
+```
+
+Instead of using the declared coordinate reference system of the 
+
+```{r echo=FALSE}
+knitr::include_graphics('images/B_Screenshot.png')
+```
+
+```{r echo=FALSE}
+knitr::include_graphics('images/C_Screenshot.png')
+```
+
+```{r echo=FALSE}
+knitr::include_graphics('images/D_Screenshot.png')
+```
+
+
+```{r, echo=TRUE}
+library(sf)
+```
+
+```{r, echo=TRUE}
+sf_extSoftVersion()
+```
+
+
+
+```{r, echo=TRUE}
+st_crs(22525)
+```
+
+```{r, echo=TRUE}
+cat(system("projinfo EPSG:22525", intern=TRUE), sep="\n")
+```
+
+```{r, echo=TRUE}
+cat(system("projinfo -s EPSG:22525 -t EPSG:4326", intern=TRUE), sep="\n")
+```
+
+
+```{r, echo=TRUE}
+cat(system("projinfo -s EPSG:22525 -t EPSG:31985", intern=TRUE), sep="\n")
+```
+
+
+
+```{r, echo=TRUE}
+olinda <- st_read("data/olinda.gpkg", quiet=TRUE)
+xy_c <- st_centroid(st_geometry(olinda[  1,]))
+st_coordinates(xy_c)
+```
+
+
+```{r, echo=TRUE}
+st_coordinates(st_transform(st_transform(xy_c, 4326), 31985))
+```
+
+```{r, echo=TRUE}
+# without CA7072_003.gsb
+st_coordinates(st_transform(xy_c, 31985))
+```
+
+```{r, echo=TRUE, eval=FALSE}
+# with CA7072_003.gsb
+st_coordinates(st_transform(xy_c, 31985))
+#          X       Y
+# 1 295489.3 9120352
+```
+
+```{r, echo=TRUE, eval=FALSE}
+# with CA7072_003.gsb
+try(st_coordinates(st_transform(xy_c, "+proj=pipeline +step +inv +proj=utm +zone=25 +south +ellps=intl +step +proj=hgridshift +grids=CA7072_003.gsb +step +proj=utm +zone=25 +south +ellps=GRS80")))
+# GDAL Error 1: PROJ: proj_crs_get_coordinate_system: Object is not a SingleCRSGDAL Error 1: PROJ: proj_crs_get_coordinate_system: Object is not a SingleCRSGDAL Error 1: PROJ: proj_crs_get_coordinate_system: Object is not a SingleCRSGDAL Error 1: PROJ: proj_crs_get_coordinate_system: Object is not a SingleCRSGDAL Error 1: PROJ: proj_as_wkt: PROJBasedOperation can only be exported to WKT2GDAL Error 1: PROJ: proj_create_operations: target_crs is not a CRSGDAL Error 6: Cannot find coordinate operations from `BOUNDCRS[SOURCECRS[PROJCRS["unknown",BASEGEOGCRS["unknown",DATUM["Unknown based on GRS80 ellipsoid",ELLIPSOID["GRS 1980",6378137,298.257222101,LENGTHUNIT["metre",1],ID["EPSG",7019]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8901]]],CONVERSION["UTM zone 25S",METHOD["Transverse Mercator",ID["EPSG",9807]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",-33,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["Scale factor at natural origin",0.9996,SCALEUNIT["unity",1],ID["EPSG",8805]],PARAMETER["False easting",500000,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",10000000,LENGTHUNIT["metre",1],ID["EPSG",8807]],ID["EPSG",17025]],CS[Cartesian,2],AXIS["(E)",east,ORDER[1],LENGTHUNIT["metre",1,ID["EPSG",9001]]],AXIS["(N)",north,ORDER[2],LENGTHUNIT["metre",1,ID["EPSG",9001]]]]],TARGETCRS[GEOGCR [... truncated]Error in CPL_transform(x, crs$proj4string) : 
+#  OGRCreateCoordinateTransformation() returned NULL: PROJ available?
+```
+
+
+```{r, echo=TRUE}
+xy <- st_coordinates(xy_c)
+# without CA7072_003.gsb
+cat(system(paste0("echo ", paste(xy, collapse=" "), " | cs2cs EPSG:22525 EPSG:31985"), intern=TRUE))
+```
+
+```{r, echo=TRUE, eval=FALSE}
+# with CA7072_003.gsb
+cat(system(paste0("echo ", paste(xy, collapse=" "), " | cs2cs EPSG:22525 EPSG:31985"), intern=TRUE))
+# 295486.40 9120350.62 0.00
+```
+
+
+```{r, echo=TRUE}
+# without CA7072_003.gsb
+# -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H
+st_coordinates(lwgeom::st_transform_proj(xy_c, 31985))
+```
+
+```{r, echo=TRUE, eval=FALSE}
+# with CA7072_003.gsb
+st_coordinates(lwgeom::st_transform_proj(xy_c, 31985))
+#          X       Y
+# 1 295489.3 9120352
+```
+
+
+```{r, echo=TRUE}
+olinda <- st_read("output/olinda_sirgas2000.gpkg", quiet=TRUE)
+xy_c <- st_centroid(st_geometry(olinda[  1,]))
+st_coordinates(xy_c)
+```
+
+
+https://epsg.io/5541
+
+
+https://www.eye4software.com/hydromagic/documentation/ntv2/
+
+https://ww2.ibge.gov.br/home/geociencias/geodesia/default_sirgas_int.shtm?c=11
+
+## GIS bridges (description and using GRASS and **rgrass7**)
+
+ASDAR ch 5, isf
+
+ex Snow
+
+
+## Using R as a GIS (topological and other operations)
+
+
+ASDAR ch 5, isf
+
+ex Snow
+
