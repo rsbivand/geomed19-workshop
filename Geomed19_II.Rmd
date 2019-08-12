@@ -325,6 +325,54 @@ The change in GEOS behaviour was not planned as such, but has consequences, fort
 
 ## GIS bridges (description and using GRASS and **rgrass7**)
 
+```{r, echo=TRUE}
+library(sf)
+```
+
+```{r, echo=TRUE}
+olinda_sirgas2000 <- st_read("output/olinda_sirgas2000.gpkg", quiet=TRUE)
+bounds <- aggregate(olinda_sirgas2000[,"SETOR_ID"], by=list(rep(1, nrow(olinda_sirgas2000))), head, n=1)
+SG <- maptools::Sobj_SpatialGrid(as(bounds, "Spatial"), n=1000000)$SG
+```
+
+```{r, echo=TRUE}
+library(rgrass7)
+use_sp()
+myGRASS <- "/home/rsb/topics/grass/g761/grass76"
+loc <- initGRASS(myGRASS, tempdir(), SG=SG, override=TRUE)
+execGRASS("g.mapset", mapset="PERMANENT")
+execGRASS("g.proj", flag="c", proj4=st_crs(bounds)$proj4string)
+execGRASS("g.mapset", mapset=loc$MAPSET)
+execGRASS("g.region", flag="d")
+```
+
+```{r, echo=TRUE}
+use_sf()
+writeVECT(bounds, "bounds", v.in.ogr_flags=c("o", "overwrite"))
+```
+
+```{r, echo=TRUE}
+use_sp()
+execGRASS("r.in.gdal", flag=c("o", "overwrite"), input="output/elevation.tif", output="dem")
+```
+
+```{r, echo=TRUE}
+execGRASS("r.watershed", flag="overwrite", elevation="dem", stream="stream", threshold=1000L, convergence=5L, memory=300L)
+execGRASS("r.thin", flag="overwrite", input="stream", output="stream1", iterations=200L)
+execGRASS("r.mask", vector="bounds")
+execGRASS("r.to.vect", flag="overwrite", input="stream1", output="stream", type="line")
+```
+
+```{r, echo=TRUE}
+use_sf()
+imputed_streams <- readVECT("stream")
+```
+
+```{r, echo=TRUE}
+library(mapview)
+mapview(imputed_streams)
+```
+
 ASDAR ch 5, isf
 
 ex Snow
