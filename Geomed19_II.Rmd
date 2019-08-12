@@ -249,7 +249,79 @@ It was retrieved from: https://www.eye4software.com/files/ntv2/ca70.zip
 
 This [page](https://ww2.ibge.gov.br/home/geociencias/geodesia/default_sirgas_int.shtm?c=11) gives a picture of why the changes in PROJ matter - the arrows are in cm per year displacement.
 
+Some grid files are available from https://proj.org/download.html, but because many others are not as freely available (yet), they may need to be dwnloaded from national mapping agencies. Most are relatively large, and also need to be versioned. Do read the README files in the zip archives!
+
 ### GEOS
+
+A recent upgrade of GEOS from 3.7.1 to 3.7.2 on a CRAN test server led to failures in three packages using **rgeos** for topological operations. **rgeos** 0.4-3 set the `checkValidity=`  argument to for example `gIntersection()` to FALSE (TRUE threw an error if either geometry was invalid). An [issue](https://github.com/r-spatial/sf/issues/1121) was opened on the **sf** github repository (**rgeos** is developed on R-Forge). The test objects (from an example from **inlmisc**) will be used here:
+
+```{r, echo=TRUE}
+rgeos::version_GEOS0()
+```
+
+For **rgeos** <= 0.4-3, the default was not to check input geometries for validity before trying topological operations, for >= 0.5-1, the default changes when GEOS > 3.7.1 to check for validity. The mode of the argument also changes to integer from logical:
+
+```{r, echo=TRUE, warning=FALSE}
+cV_old_default <- ifelse(rgeos::version_GEOS0() >= "3.7.2", 0L, FALSE)
+yy <- rgeos::readWKT(readLines("data/invalid.wkt"))
+rgeos::gIsValid(yy, byid=TRUE, reason=TRUE)
+```
+
+```{r, echo=TRUE}
+sf::sf_extSoftVersion()
+```
+
+The same underlyng GEOS code is used in **sf**:
+
+```{r, echo=TRUE}
+sf::st_is_valid(sf::st_as_sf(yy), reason=TRUE)
+```
+The geometries were also invalid in GEOS 3.7.1, but the operations succeeded:
+
+```{r, echo=TRUE, warning=FALSE}
+ply <- rgeos::readWKT(readLines("data/ply.wkt"))
+oo <- try(rgeos::gIntersection(yy, ply, byid=TRUE, checkValidity=cV_old_default), silent=TRUE)
+print(attr(oo, "condition")$message)
+```
+```{r, echo=TRUE}
+ooo <- try(sf::st_intersection(sf::st_as_sf(yy), sf::st_as_sf(ply)), silent=TRUE)
+print(attr(oo, "condition")$message)
+```
+In **rgeos** 0.5-1 and GEOS 3.7.2, new warnings are provided, and advice to check validity.
+
+```{r, echo=TRUE}
+cV_new_default <- ifelse(rgeos::version_GEOS0() >= "3.7.2", 1L, TRUE)
+try(rgeos::gIntersection(yy, ply, byid=TRUE, checkValidity=cV_new_default), silent=TRUE)
+```
+
+New options are provided, `get_RGEOS_CheckValidity()` and `set_RGEOS_CheckValidity()`, because in some packages the use of topological operations may happen through other packages, such as `raster::crop()` calling `rgeos::gIntersection()` without access to the arguments of the latter function.
+
+If we follow the advice, zero-width buffering is used to try to rectify the invalidity:
+
+```{r, echo=TRUE}
+oo <- rgeos::gIntersection(yy, ply, byid=TRUE, checkValidity=2L)
+rgeos::gIsValid(oo)
+```
+
+equivalently:
+
+```{r, echo=TRUE}
+oo <- rgeos::gIntersection(rgeos::gBuffer(yy, byid=TRUE, width=0), ply, byid=TRUE, checkValidity=1L)
+rgeos::gIsValid(oo)
+```
+
+and by extension to **sf** until GEOS 3.7.2 is accommodated:
+
+```{r, echo=TRUE}
+ooo <- sf::st_intersection(sf::st_buffer(sf::st_as_sf(yy), dist=0), sf::st_as_sf(ply))
+all(sf::st_is_valid(ooo))
+```
+
+The actual cause was the use of an ESRI/shapefile style/understanding of the self-touching exterior ring. In OGC style, an interior ring is required, but not in shapefile style. Martin Davis responded in the issue:
+
+> The problem turned out to be a noding robustness issue, which caused the valid input linework to have a self-touch after noding. This caused the output to be invalid. The fix was to tighten up the internal overlay noding validation check to catch this situation. This has the side-effect of detecting (and failing) all self-touches in input geometry. Previously, vertex-vertex self-touches were not detected, and in many cases they would simply propagate through the overlay algorithm. (This made the output invalid as well, but since the inputs were already invalid this behaviour was considered acceptable).
+
+The change in GEOS behaviour was not planned as such, but has consequences, fortunately detected because CRAN checks by default much more than say Travis by default. Zero-width buffering will not repair all cases of invalidity, but does work here.
 
 ## GIS bridges (description and using GRASS and **rgrass7**)
 
