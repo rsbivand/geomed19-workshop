@@ -331,7 +331,7 @@ library(sf)
 
 ```{r, echo=TRUE}
 olinda_sirgas2000 <- st_read("output/olinda_sirgas2000.gpkg", quiet=TRUE)
-bounds <- aggregate(olinda_sirgas2000[,"SETOR_ID"], by=list(rep(1, nrow(olinda_sirgas2000))), head, n=1)
+bounds <- st_sf(st_union(olinda_sirgas2000))
 SG <- maptools::Sobj_SpatialGrid(as(bounds, "Spatial"), n=1000000)$SG
 ```
 
@@ -347,38 +347,60 @@ execGRASS("g.region", flag="d")
 ```
 
 ```{r, echo=TRUE}
-use_sf()
-writeVECT(bounds, "bounds", v.in.ogr_flags=c("o", "overwrite"))
-```
-
-```{r, echo=TRUE}
 use_sp()
-execGRASS("r.in.gdal", flag=c("o", "overwrite"), input="output/elevation.tif", output="dem")
+execGRASS("r.in.gdal", flag=c("overwrite"), input="output/elevation.tif", output="dem")
+execGRASS("g.region", raster="dem")
 ```
 
 ```{r, echo=TRUE}
-execGRASS("r.watershed", flag="overwrite", elevation="dem", stream="stream", threshold=1000L, convergence=5L, memory=300L)
+execGRASS("r.watershed", flag="overwrite", elevation="dem", stream="stream", threshold=2500L, convergence=5L, memory=300L)
 execGRASS("r.thin", flag="overwrite", input="stream", output="stream1", iterations=200L)
-execGRASS("r.mask", vector="bounds")
+```
+
+```{r, echo=TRUE}
+use_sf()
+writeVECT(bounds, "bounds", v.in.ogr_flags="overwrite")
+execGRASS("r.mask", vector="bounds", flag="overwrite")
 execGRASS("r.to.vect", flag="overwrite", input="stream1", output="stream", type="line")
 ```
 
 ```{r, echo=TRUE}
-use_sf()
 imputed_streams <- readVECT("stream")
 ```
 
-```{r, echo=TRUE}
+```{r, echo=TRUE, warning=FALSE}
 library(mapview)
 mapview(imputed_streams)
+```
+
+## Using R as a GIS (topological and other operations)
+
+```{r, echo=TRUE, warning=FALSE}
+water_buf_50 <- st_buffer(imputed_streams, dist=50)
+setor_area <- st_area(olinda_sirgas2000)
+near_water0 <- st_intersection(olinda_sirgas2000[,"SETOR_"], water_buf_50[,"cat"])
+near_water <- aggregate(near_water0, by=list(near_water0$SETOR_), head, n=1)
+```
+
+```{r, echo=TRUE}
+area_near_water <- st_area(near_water)
+olinda_sirgas2000$setor_area <- setor_area
+o <- match(near_water$SETOR_, olinda_sirgas2000$SETOR_)
+olinda_sirgas2000$area_near_water <- 0
+olinda_sirgas2000$area_near_water[o] <- area_near_water
+olinda_sirgas2000$prop_near_water <- olinda_sirgas2000$area_near_water/olinda_sirgas2000$setor_area
+summary(olinda_sirgas2000$prop_near_water)
+```
+
+```{r, echo=TRUE}
+library(tmap)
+tm_shape(olinda_sirgas2000) + tm_fill("prop_near_water", palette="Blues")
 ```
 
 ASDAR ch 5, isf
 
 ex Snow
 
-
-## Using R as a GIS (topological and other operations)
 
 
 ASDAR ch 5, isf
