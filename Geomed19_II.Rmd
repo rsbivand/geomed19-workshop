@@ -368,10 +368,28 @@ execGRASS("r.to.vect", flag=c("overwrite", "quiet"), input="stream1", output="st
 imputed_streams <- readVECT("stream", ignore.stderr=TRUE)
 ```
 
+
 ```{r, echo=TRUE, warning=FALSE}
 library(mapview)
 mapview(imputed_streams)
 ```
+
+```{r, echo=TRUE}
+execGRASS("r.slope.aspect", elevation="dem", slope="slope", aspect="aspect", flag=c("quiet", "overwrite"))
+writeVECT(olinda_sirgas2000[, "SETOR_"], "olinda", ignore.stderr=TRUE, v.in.ogr_flags=c("overwrite", "quiet"))
+execGRASS("v.rast.stats", map="olinda", raster=c("slope", "aspect"), method=c("first_quartile", "median", "third_quartile"), column_prefix=c("slope", "aspect"), flag=c("c", "quiet"))
+```
+
+```{r, echo=TRUE}
+olinda_gmm <- readVECT("olinda", ignore.stderr=TRUE)
+head(olinda_gmm)
+```
+
+## Exercises and review
+
+
+
+
 
 ## Using R as a GIS (topological and other operations)
 
@@ -394,16 +412,28 @@ summary(olinda_sirgas2000$prop_near_water)
 
 ```{r, echo=TRUE}
 library(tmap)
-tm_shape(olinda_sirgas2000) + tm_fill("prop_near_water", palette="Blues")
+tm_shape(olinda_sirgas2000) + tm_fill("prop_near_water", palette="Blues", style="fisher", n=5)
 ```
 
-ASDAR ch 5, isf
+```{r, echo=TRUE, warning=FALSE}
+streams_by_setor <- st_intersection(olinda_sirgas2000[,"SETOR_"], imputed_streams[,"cat"])
+lngths0 <- aggregate(streams_by_setor, by=list(streams_by_setor$SETOR_), head, n=1)
+lngths <- st_length(lngths0)
+units(lngths) <- "mm"
+o <- match(lngths0$SETOR_, olinda_sirgas2000$SETOR_)
+olinda_sirgas2000$lngths <- 0
+olinda_sirgas2000$lngths[o] <- lngths
+olinda_sirgas2000$lngth_area <- olinda_sirgas2000$lngths/olinda_sirgas2000$setor_area
+```
 
-ex Snow
 
+```{r, echo=TRUE}
+tm_shape(olinda_sirgas2000) + tm_fill("lngth_area", palette="Blues", style="fisher", n=5)
+```
 
+```{r, echo=TRUE}
+cor(olinda_sirgas2000$lngth_area, olinda_sirgas2000$prop_near_water)
+```
 
-ASDAR ch 5, isf
-
-ex Snow
+## Exercises and review
 
