@@ -337,7 +337,7 @@ GIS interfaces can be as simple as just reading and writing files using loose co
 The interface between R and GRASS uses the fact that GRASS modules can be run as command line programs at the shell prompt. The shell has certain environment variables for GRASS set, for example saying where the data is stored, but is otherwise a regular shell, from which R can be started. This instance of R inherits the environment variables set by GRASS
 
 ```{r echo=FALSE}
-knitr::include_graphics('gc009_04a.pdf')
+knitr::include_graphics('gc009_04a.png')
 ```
 
 
@@ -345,12 +345,12 @@ Finally, although for research purposes it may be prefered to have data analysis
 
 
 ```{r echo=FALSE}
-knitr::include_graphics('links0.pdf')
+knitr::include_graphics('links0.png')
 ```
 
 ### Two sides of the R/GRASS interface
 
-The R/GRASS interface came into being in 1998/1999, and is covered in Bivand [@bivand:00] and [a conference paper by Bivand and Neteler](http://www.geocomputation.org/2000/GC009/Gc009.htm); and [@bivand:14]. R was started in a GRASS LOCATION, and spatial data was exchanged between GRASS and R, running as it were in tandem; the workflows were not integrated. **spgrass6** and its use discussed in Neteler and Mitasova [-@neteler+mitasova:08] continued this approach, but about that time steps were taken to permit scripting GRASS from R in existing LOCATIONs, like **RSAGA**. Shortly afterwards, **spgrass6** and now **rgrass7** introduced the possibility of creating a temporary GRASS LOCATION permitting GIS operations on data from the R side.
+The R/GRASS interface came into being in 1998/1999, and is covered in Bivand [-@bivand:00] and [a conference paper by Bivand and Neteler](http://www.geocomputation.org/2000/GC009/Gc009.htm); and Bivand [-@bivand:14]. R was started in a GRASS LOCATION, and spatial data was exchanged between GRASS and R, running as it were in tandem; the workflows were not integrated. **spgrass6** and its use discussed in Neteler and Mitasova [-@neteler+mitasova:08] continued this approach, but about that time steps were taken to permit scripting GRASS from R in existing LOCATIONs, like **RSAGA**. Shortly afterwards, **spgrass6** and now **rgrass7** introduced the possibility of creating a temporary GRASS LOCATION permitting GIS operations on data from the R side.
 
 ### GRASS sessions
 
@@ -642,40 +642,117 @@ tm_shape(olinda_sirgas2000) + tm_fill("lngth_area", palette="Blues", style="fish
 cor(olinda_sirgas2000$lngth_area, olinda_sirgas2000$prop_near_water)
 ```
 
-## Exercises and review
+```{r, echo=TRUE}
+library(raster)
+r <- raster("output/elevation.tif")
+r
+```
+
+We can use `raster::terrain()` to calculate geomorphometric measures:
+
+```{r, echo=TRUE, cache=TRUE}
+slope_aspect <- terrain(r, opt=c('slope','aspect'), unit='degrees', neighbors=8)
+```
+
+and extract median values by setor polygon:
+
+```{r, echo=TRUE, cache=TRUE}
+slopes <- extract(slope_aspect, olinda_sirgas2000, fun=median)
+```
+
+as well as the median NDVI values:
+
+```{r, echo=TRUE, cache=TRUE}
+ndvi <- extract(raster("output/L7_ndvi.tif"), olinda_sirgas2000, fun=median)
+```
 
 ```{r, echo=TRUE}
+summary(ndvi[,1])
+if (exists("olinda_gmm_ndvi")) summary(olinda_gmm_ndvi$ndvi_median)
+```
+
+```{r, echo=TRUE}
+summary(slopes[,1])
+if (exists("olinda_gmm_ndvi")) summary(olinda_gmm_ndvi$slope_median)
+```
+
+
+```{r, echo=TRUE}
+summary(slopes[,2])
+if (exists("olinda_gmm_ndvi")) summary(olinda_gmm_ndvi$aspect_median)
+```
+
+
+## Exercises and review
+
+As there is a small difference between the CRS values, we copy across before conducting an intersection operation to clip the buildings to the boundary, then we buffer in the buildings object (to make the roads broader).
+
+```{r, echo=TRUE, warning=FALSE}
 library(sf)
-#library(rgdal)
-#ogrInfo(dsn="data", layer="bbo")
-#bbo <- readOGR(dsn="data", layer="bbo")
-#length(bbo)
-#buildings <- readOGR(dsn="data", layer="buildings")
-#proj4string(bbo)
-#proj4string(buildings)
-#proj4string(bbo) <- CRS(proj4string(buildings))
-#deaths <- readOGR(dsn="data", layer="deaths")
-#sum(deaths$Num_Css)
-#b_pump <- readOGR(dsn="data", layer="b_pump")
-#nb_pump <- readOGR(dsn="data", layer="nb_pump")
-#library(rgeos)
 st_crs(buildings) <- st_crs(bbo)
-roads <- st_intersection(bbo, buildings)
-broads <- st_buffer(roads, dist=-4)
-resolution <- 1
+buildings1 <- st_intersection(buildings, bbo)
+buildings2 <- st_buffer(buildings1, dist=-4)
+```
+
+```{r, echo=TRUE, warning=FALSE}
+library(mapview)
+mapview(buildings2)
+```
+
+Next we create a dummy raster using **raster** with 1 meter resolution in the extent of the buildings object (note that `raster::extent()` works with **sf** objects, but the CRS must be given as a string):
+
+```{r, echo=TRUE}
 library(raster)
-r <- raster(extent(broads), resolution=resolution, crs=st_crs(buildings)$proj4string)
-cfp <- cellFromPolygon(r, as(broads[!st_is_empty(broads),], "Spatial"))
+resolution <- 1
+r <- raster(extent(buildings2), resolution=resolution, crs=st_crs(buildings)$proj4string)
 r[] <- resolution
 summary(r)
-is.na(r[]) <- cfp[[1]]
+```
+
+One of the `building3` component geometries was empty (permitted in **sf**, not in **sp**), so should be dropped before running `raster::cellFromPolygon()` to list raster cells in each geometry (so we need `unlist()` to assign `NA` to the in-buffered buildings):
+
+```{r, echo=TRUE, cache=TRUE}
+buildings3 <- as(buildings2[!st_is_empty(buildings2),], "Spatial")
+cfp <- cellFromPolygon(r, buildings3)
+is.na(r[]) <- unlist(cfp)
 summary(r)
+```
+
+```{r, echo=TRUE, warning=FALSE}
+library(mapview)
+mapview(r)
+```
+
+Using **gdistance**, we create a symmetric transition object with an internal sparse matrix representation, from which shortest paths can be computed:
+```{r, echo=TRUE, warning=FALSE}
 library(gdistance)
+```
+
+```{r, echo=TRUE, cache=TRUE}
 tr1 <- transition(r, transitionFunction=function(x) 1/mean(x), directions=8, symm=TRUE)
-d_b_pump <- gLength(shortestPath(tr1, b_pump, deaths, output="SpatialLines"), byid=TRUE)
-res <- matrix(NA, ncol=length(nb_pump), nrow=length(deaths))
-for (i in seq(along=nb_pump)) res[,i] <- gLength(shortestPath(tr1, nb_pump[i,], deaths, output="SpatialLines"), byid=TRUE)
+```
+
+We need to find shortest paths from addresses with mortalities to the Broad Street pump first:
+
+```{r, echo=TRUE, cache=TRUE}
+sp_deaths <- as(deaths, "Spatial")
+d_b_pump <- st_length(st_as_sfc(shortestPath(tr1, as(b_pump, "Spatial"), sp_deaths, output="SpatialLines")))
+```
+
+and then in a loop from the same addresses to each of the other pumps in turn, finally taking the minimum:
+
+```{r, echo=TRUE, cache=TRUE}
+res <- matrix(NA, ncol=nrow(nb_pump), nrow=nrow(deaths))
+sp_nb_pump <- as(nb_pump, "Spatial")
+for (i in 1:nrow(nb_pump)) res[,i] <- st_length(st_as_sfc(shortestPath(tr1, sp_nb_pump[i,], sp_deaths, output="SpatialLines")))
 d_nb_pump <- apply(res, 1, min)
+```
+
+Because `sf::st_length()` uses **units** units, but they get lost in assigning to a matrix, we need to re-assign before testing whether the Broad Street pump is closer or not:
+
+```{r, echo=TRUE}
+library(units)
+units(d_nb_pump) <- "m"
 deaths$b_nearer <- d_b_pump < d_nb_pump
 by(deaths$Num_Css, deaths$b_nearer, sum)
 ```
