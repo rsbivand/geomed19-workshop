@@ -27,13 +27,14 @@ All the material presented here, to the extent it is original, is available unde
 I am running R 3.6.1, with recent `update.packages()`.
 
 ```{r, echo=TRUE}
-#needed <- c("sf", "mapview", "sp", "spdep", "elevatr", "raster", "stars", "classInt", 
-#  "RColorBrewer", "tmap", "tmaptools", "cartography", "ggplot2", "colorspace")
+needed <- c("sf", "mapview", "sp", "raster", "classInt", "RColorBrewer", "tmap", "rgdal", "rgrass7", "units", "gdistance", "rgeos", "lwgeom", "maptools")
 ```
+
+I also have GRASS 7.6.1 (https://grass.osgeo.org/download/software/), but this is not essential (learning GRASS in 30 minutes is not easy).
 
 ### Script
 
-Script at . Download to suitable location and use as basis.
+Script at https://github.com/rsbivand/geomed19-workshop/raw/master/Geomed19_II.zip. Download to suitable location and use as basis.
 
 
 ## Session II
@@ -243,7 +244,7 @@ st_coordinates(xy_c)
 ```
 
 
-This is the EPSG decription of the grid file: https://epsg.io/5541
+This is the EPSG description of the grid file: https://epsg.io/5541
 
 It was retrieved from: https://www.eye4software.com/files/ntv2/ca70.zip
 
@@ -366,7 +367,7 @@ In general use, `execGRASS` calls `doGRASS`, which in turn calls `parseGRASS`. U
 
 ### Initialize temporary GRASS session
 
-Here we need the three objects we have already created, and also set `override=` to `TRUE`, as this document may be run many times. `initGRASS()` looks for an environment variable that GRASS sessions set (`GISRC`) pointing to a file of GRASS environment variables. Real GRASS sessions remove it on exit, but this interface does not (yet) provide for its removal, hence the need here to override.
+Here we need three objects to be created, and also set `override=` to `TRUE`, as this document may be run many times. `initGRASS()` looks for an environment variable that GRASS sessions set (`GISRC`) pointing to a file of GRASS environment variables. Real GRASS sessions remove it on exit, but this interface does not (yet) provide for its removal, hence the need here to override.
 
 
 ```{r, echo=TRUE}
@@ -534,12 +535,6 @@ execGRASS("g.list", type="vector", intern=TRUE)
 
 The buildings vector layer should be converted to its inverse (not buildings), and these roads should then be buffered to include the front doors (here 4m). These operations can be done in the raster or vector representation, but the outcome here will be a raster object from which to find the cost in 1 metre resolution of moving from each front door to each pump. We then need to extract the distance to the Broad Street pump, and to the nearest other pump, for each front door. We could also use vector street centre lines to build a network, and used graph-based methods to find the shortest paths from each front door to the pumps.
 
-```{r, echo=TRUE}
-execGRASS("v.overlay", ainput="buildings", binput="bbo", operator="xor", output="roads", flags=fl, ignore.stderr = TRUE)
-execGRASS("v.to.rast", input="roads", output="rroads", use="val", value=1, flags=fl)
-execGRASS("r.stats", input="rroads", flags=c("c", "quiet"))
-```
-
 
 ### Create roads and convert to raster
 
@@ -598,7 +593,7 @@ by(deaths1$Num_Css, deaths1$b_nearer, sum)
 
 ## Using R as a GIS (topological and other operations)
 
-(https://onlinelibrary.wiley.com/doi/10.1111/ecog.04617) **landscapemetrics**
+There is a recently published article (https://onlinelibrary.wiley.com/doi/10.1111/ecog.04617) on the **landscapemetrics** package; there are now many R packages for operations previously performed in GIS. It may be the case that even for moderate data set sizes, GIS are more performant, and this will almost certainly be the case for larger data sets, although sensible use of proxy datasets not in memory, and scaling operations to evaluate for the required output resolution may help. Here we first use the imputed streams to show topological operations, first the proportion of the area of setors that are within 50m of an imputed stream:
 
 ```{r, echo=TRUE, warning=FALSE}
 water_buf_50 <- st_buffer(imputed_streams, dist=50)
@@ -622,6 +617,8 @@ library(tmap)
 tm_shape(olinda_sirgas2000) + tm_fill("prop_near_water", palette="Blues", style="fisher", n=5)
 ```
 
+Next, we examine the length of imputed streams per unit area by setor, again using intersection followed by aggregation to the setors:
+
 ```{r, echo=TRUE, warning=FALSE}
 streams_by_setor <- st_intersection(olinda_sirgas2000[,"SETOR_"], imputed_streams[,"cat"])
 lngths0 <- aggregate(streams_by_setor, by=list(streams_by_setor$SETOR_), head, n=1)
@@ -638,9 +635,13 @@ olinda_sirgas2000$lngth_area <- olinda_sirgas2000$lngths/olinda_sirgas2000$setor
 tm_shape(olinda_sirgas2000) + tm_fill("lngth_area", palette="Blues", style="fisher", n=5)
 ```
 
+These two measures are highly correlated.
+
 ```{r, echo=TRUE}
 cor(olinda_sirgas2000$lngth_area, olinda_sirgas2000$prop_near_water)
 ```
+
+We can also use **raster** for operations on the raster objects that we have at our disposal.
 
 ```{r, echo=TRUE}
 library(raster)
@@ -724,7 +725,7 @@ mapview(r)
 ```
 
 Using **gdistance**, we create a symmetric transition object with an internal sparse matrix representation, from which shortest paths can be computed:
-```{r, echo=TRUE, warning=FALSE}
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
 library(gdistance)
 ```
 
