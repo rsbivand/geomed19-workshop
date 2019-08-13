@@ -486,6 +486,7 @@ We would like to find the line of equal distances shown on the extract from John
 ```{r, echo=TRUE}
 library(sf)
 bbo <- st_read("data/snow/bbo.gpkg")
+st_crs(bbo) <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +nadgrids=OSTN15_NTv2_OSGBtoETRS.gsb +units=m +no_defs"
 ```
 
 ```{r, echo=TRUE}
@@ -514,7 +515,9 @@ execGRASS("g.region", flags="p", intern=TRUE)[3:11]
 
 ```{r, echo=TRUE}
 buildings <- st_read("data/snow/buildings.gpkg", quiet=TRUE)
+st_crs(buildings) <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +nadgrids=OSTN15_NTv2_OSGBtoETRS.gsb +units=m +no_defs"
 deaths <- st_read("data/snow/deaths.gpkg", quiet=TRUE)
+st_crs(deaths) <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +nadgrids=OSTN15_NTv2_OSGBtoETRS.gsb +units=m +no_defs"
 sum(deaths$Num_Css)
 b_pump <- st_read("data/snow/b_pump.gpkg", quiet=TRUE)
 nb_pump <- st_read("data/snow/nb_pump.gpkg", quiet=TRUE)
@@ -523,7 +526,7 @@ nb_pump <- st_read("data/snow/nb_pump.gpkg", quiet=TRUE)
 ```{r, echo=TRUE}
 use_sf()
 fl <- c("overwrite", "quiet")
-writeVECT(bbo, vname="bbo", v.in.ogr_flags=fl)
+writeVECT(bbo, vname="bbo", v.in.ogr_flags=c("o", fl))
 writeVECT(buildings[,1], vname="buildings", v.in.ogr_flags=c("o", fl))
 writeVECT(b_pump, vname="b_pump", v.in.ogr_flags=c("o", fl))
 writeVECT(nb_pump, vname="nb_pump", v.in.ogr_flags=c("o", fl))
@@ -690,7 +693,6 @@ As there is a small difference between the CRS values, we copy across before con
 
 ```{r, echo=TRUE, warning=FALSE}
 library(sf)
-st_crs(buildings) <- st_crs(bbo)
 buildings1 <- st_intersection(buildings, bbo)
 buildings2 <- st_buffer(buildings1, dist=-4)
 ```
@@ -705,7 +707,7 @@ Next we create a dummy raster using **raster** with 1 meter resolution in the ex
 ```{r, echo=TRUE}
 library(raster)
 resolution <- 1
-r <- raster(extent(buildings2), resolution=resolution, crs=st_crs(buildings)$proj4string)
+r <- raster(extent(buildings2), resolution=resolution, crs="+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +nadgrids=OSTN15_NTv2_OSGBtoETRS.gsb +units=m +no_defs")
 r[] <- resolution
 summary(r)
 ```
