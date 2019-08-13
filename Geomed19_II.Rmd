@@ -340,32 +340,32 @@ library(rgrass7)
 use_sp()
 myGRASS <- "/home/rsb/topics/grass/g761/grass76"
 loc <- initGRASS(myGRASS, tempdir(), SG=SG, override=TRUE)
-execGRASS("g.mapset", mapset="PERMANENT")
+execGRASS("g.mapset", mapset="PERMANENT", flag="quiet")
 execGRASS("g.proj", flag="c", proj4=st_crs(bounds)$proj4string)
-execGRASS("g.mapset", mapset=loc$MAPSET)
+execGRASS("g.mapset", mapset=loc$MAPSET, flag="quiet")
 execGRASS("g.region", flag="d")
 ```
 
 ```{r, echo=TRUE}
 use_sp()
-execGRASS("r.in.gdal", flag=c("overwrite"), input="output/elevation.tif", output="dem")
+execGRASS("r.in.gdal", flag=c("overwrite", "quiet"), input="output/elevation.tif", output="dem")
 execGRASS("g.region", raster="dem")
 ```
 
 ```{r, echo=TRUE}
-execGRASS("r.watershed", flag="overwrite", elevation="dem", stream="stream", threshold=2500L, convergence=5L, memory=300L)
-execGRASS("r.thin", flag="overwrite", input="stream", output="stream1", iterations=200L)
+execGRASS("r.watershed", flag=c("overwrite", "quiet"), elevation="dem", stream="stream", threshold=2500L, convergence=5L, memory=300L)
+execGRASS("r.thin", flag=c("overwrite", "quiet"), input="stream", output="stream1", iterations=200L)
 ```
 
 ```{r, echo=TRUE}
 use_sf()
-writeVECT(bounds, "bounds", v.in.ogr_flags="overwrite")
-execGRASS("r.mask", vector="bounds", flag="overwrite")
-execGRASS("r.to.vect", flag="overwrite", input="stream1", output="stream", type="line")
+writeVECT(bounds, "bounds", v.in.ogr_flags=c("overwrite", "quiet"))
+execGRASS("r.mask", vector="bounds", flag=c("overwrite", "quiet"))
+execGRASS("r.to.vect", flag=c("overwrite", "quiet"), input="stream1", output="stream", type="line")
 ```
 
 ```{r, echo=TRUE}
-imputed_streams <- readVECT("stream")
+imputed_streams <- readVECT("stream", ignore.stderr=TRUE)
 ```
 
 ```{r, echo=TRUE, warning=FALSE}
