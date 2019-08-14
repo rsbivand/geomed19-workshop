@@ -134,6 +134,49 @@ ooo <- sf::st_intersection(sf::st_buffer(sf::st_as_sf(yy), dist=0), sf::st_as_sf
 all(sf::st_is_valid(ooo))
 
 
+## ---- echo=TRUE----------------------------------------------------------
+buildings <- sf::st_read("data/snow/buildings.gpkg", quiet=TRUE)
+st_crs(buildings)
+
+
+## ---- echo=TRUE----------------------------------------------------------
+library(mapview)
+mapview(buildings)
+
+
+## ---- echo=TRUE----------------------------------------------------------
+library(RSQLite)
+db = dbConnect(SQLite(), dbname="data/snow/buildings.gpkg")
+dbReadTable(db, "gpkg_spatial_ref_sys")$definition[4]
+dbDisconnect(db)
+
+
+## ---- echo=TRUE----------------------------------------------------------
+buildings1 <- rgdal::readOGR("data/snow/buildings.shp", verbose=FALSE)
+sp::proj4string(buildings1)
+
+
+## ---- echo=TRUE----------------------------------------------------------
+mapview(buildings1)
+
+
+## ---- echo=TRUE, warning=FALSE-------------------------------------------
+readLines("data/snow/buildings.prj")
+
+
+## ---- echo=TRUE, warning=FALSE-------------------------------------------
+fixed <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +nadgrids=OSTN15_NTv2_OSGBtoETRS.gsb +units=m +no_defs"
+st_crs(buildings) <- fixed
+sp::proj4string(buildings1) <- sp::CRS(fixed)
+
+
+## ---- echo=TRUE----------------------------------------------------------
+mapview(buildings)
+
+
+## ---- echo=TRUE----------------------------------------------------------
+mapview(buildings1)
+
 
 ## ---- echo=TRUE----------------------------------------------------------
 library(sf)
@@ -150,6 +193,8 @@ library(rgrass7)
 packageVersion("rgrass7")
 use_sp()
 myGRASS <- "/home/rsb/topics/grass/g761/grass76"
+myPROJSHARE <- "/usr/local/share/proj"
+if (Sys.getenv("GRASS_PROJSHARE") == "") Sys.setenv(GRASS_PROJSHARE=myPROJSHARE)
 loc <- initGRASS(myGRASS, tempdir(), SG=SG, override=TRUE)
 
 
@@ -211,10 +256,14 @@ knitr::include_graphics('brodyetal00_fig1.png')
 ## ---- echo=TRUE----------------------------------------------------------
 library(sf)
 bbo <- st_read("data/snow/bbo.gpkg")
+fixed <- "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +nadgrids=OSTN15_NTv2_OSGBtoETRS.gsb +units=m +no_defs"
+st_crs(bbo) <- fixed
 
 
 ## ---- echo=TRUE----------------------------------------------------------
 library(rgrass7)
+myPROJSHARE <- "/usr/local/share/proj"
+if (Sys.getenv("GRASS_PROJSHARE") == "") Sys.setenv(GRASS_PROJSHARE=myPROJSHARE)
 myGRASS <- "/home/rsb/topics/grass/g761/grass76"
 td <- tempdir()
 SG <- maptools::Sobj_SpatialGrid(as(bbo, "Spatial"))$SG
@@ -237,24 +286,27 @@ execGRASS("g.region", flags="a", res="1")
 execGRASS("g.region", flags="p", intern=TRUE)[3:11]
 
 
-## ---- echo=TRUE----------------------------------------------------------
+## ---- echo=TRUE, warning=FALSE-------------------------------------------
 buildings <- st_read("data/snow/buildings.gpkg", quiet=TRUE)
+st_crs(buildings) <- fixed
 deaths <- st_read("data/snow/deaths.gpkg", quiet=TRUE)
+st_crs(deaths) <- fixed
 sum(deaths$Num_Css)
 b_pump <- st_read("data/snow/b_pump.gpkg", quiet=TRUE)
+st_crs(b_pump) <- fixed
 nb_pump <- st_read("data/snow/nb_pump.gpkg", quiet=TRUE)
+st_crs(nb_pump) <- fixed
 
 
-## ---- echo=TRUE----------------------------------------------------------
+## ---- echo=TRUE, warning=FALSE-------------------------------------------
 use_sf()
 fl <- c("overwrite", "quiet")
-writeVECT(bbo, vname="bbo", v.in.ogr_flags=fl)
-writeVECT(buildings[,1], vname="buildings", v.in.ogr_flags=c("o", fl))
-writeVECT(b_pump, vname="b_pump", v.in.ogr_flags=c("o", fl))
-writeVECT(nb_pump, vname="nb_pump", v.in.ogr_flags=c("o", fl))
-writeVECT(deaths, vname="deaths", v.in.ogr_flags=c("o", fl))
+writeVECT(bbo, vname="bbo", v.in.ogr_flags=c("o", fl), ignore.stderr=TRUE)
+writeVECT(buildings[,1], vname="buildings", v.in.ogr_flags=c("o", fl), ignore.stderr=TRUE)
+writeVECT(b_pump, vname="b_pump", v.in.ogr_flags=c("o", fl), ignore.stderr=TRUE)
+writeVECT(nb_pump, vname="nb_pump", v.in.ogr_flags=c("o", fl), ignore.stderr=TRUE)
+writeVECT(deaths, vname="deaths", v.in.ogr_flags=c("o", fl), ignore.stderr=TRUE)
 execGRASS("g.list", type="vector", intern=TRUE)
-
 
 
 ## ---- echo = TRUE, mysize=TRUE, size='\\tiny'----------------------------
@@ -366,7 +418,6 @@ if (exists("olinda_gmm_ndvi")) summary(olinda_gmm_ndvi$aspect_median)
 
 ## ---- echo=TRUE, warning=FALSE-------------------------------------------
 library(sf)
-st_crs(buildings) <- st_crs(bbo)
 buildings1 <- st_intersection(buildings, bbo)
 buildings2 <- st_buffer(buildings1, dist=-4)
 
@@ -379,7 +430,7 @@ mapview(buildings2)
 ## ---- echo=TRUE----------------------------------------------------------
 library(raster)
 resolution <- 1
-r <- raster(extent(buildings2), resolution=resolution, crs=st_crs(buildings)$proj4string)
+r <- raster(extent(buildings2), resolution=resolution, crs=fixed)
 r[] <- resolution
 summary(r)
 
@@ -396,7 +447,7 @@ library(mapview)
 mapview(r)
 
 
-## ---- echo=TRUE, warning=FALSE-------------------------------------------
+## ---- echo=TRUE, warning=FALSE, message=FALSE----------------------------
 library(gdistance)
 
 
