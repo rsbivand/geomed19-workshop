@@ -665,7 +665,7 @@ by(deaths1$Num_Css, deaths1$b_nearer, sum)
 
 ## Using R as a GIS (topological and other operations)
 
-There is a recently published article (https://onlinelibrary.wiley.com/doi/10.1111/ecog.04617) on the **landscapemetrics** package; there are now many R packages for operations previously performed in GIS. It may be the case that even for moderate data set sizes, GIS are more performant, and this will almost certainly be the case for larger data sets, although sensible use of proxy datasets not in memory, and scaling operations to evaluate for the required output resolution may help. Here we first use the imputed streams to show topological operations, first the proportion of the area of setors that are within 50m of an imputed stream:
+There is a recently published article (https://onlinelibrary.wiley.com/doi/10.1111/ecog.04617) on the **landscapemetrics** package [@doi:10.1111/ecog.04617]; there are now many R packages for operations previously performed in GIS. It may be the case that even for moderate data set sizes, GIS are more performant, and this will almost certainly be the case for larger data sets, although sensible use of proxy datasets not in memory, and scaling operations to evaluate for the required output resolution may help. Here we first use the imputed streams to show topological operations, first the proportion of the area of setors that are within 50m of an imputed stream:
 
 ```{r, echo=TRUE, warning=FALSE}
 water_buf_50 <- st_buffer(imputed_streams, dist=50)
