@@ -64,7 +64,7 @@ Script and data at https://github.com/rsbivand/geomed19-workshop/raw/master/Geom
 - 2003: [rgdal](https://cran.r-project.org/package=rgdal) released on CRAN (with GDAL and PROJ support)
 - 2005: [sp](https://cran.r-project.org/package=sp) released on CRAN; **sp** support in **rgdal**
 - 2008: [Applied Spatial Data Analysis with R](https://www.asdar-book.org/)
-- 2011: [rgeos](https://cran.r-project.org/package=rgeos) released on CRAN (with GEOS support for **sp** class objects^)
+- 2011: [rgeos](https://cran.r-project.org/package=rgeos) released on CRAN (with GEOS support for **sp** class objects)
 - 2013: second edition of [Applied Spatial Data Analysis with R](https://www.asdar-book.org/) [@asdar]
 - 2015 [JSS special issue](https://www.jstatsoft.org/index.php/jss/issue/view/v063)
 - 2016-7: **sf** [simple features for R](https://cran.r-project.org/package=sf), R consortium support (combines GDAL, GEOS and PROJ support and S3 classes)
